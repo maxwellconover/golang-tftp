@@ -2,8 +2,6 @@
 package server
 
 type Server struct {
-	dir string
-	readfunc
 }
 
 func NewServer()
