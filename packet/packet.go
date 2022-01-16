@@ -2,7 +2,9 @@
 package packet
 
 import (
+	"bytes"
 	"encoding/binary"
+	"errors"
 )
 
 // Type codes
@@ -26,9 +28,14 @@ const (
 	ErrNoSuchUserTFTP                           //7
 )
 
+const (
+	blockLength    = 512
+	datagramLength = 516
+)
+
 type Packet interface {
 	// Serialize packet
-	ToBytes() []byte
+	Serialize() []byte
 }
 
 // RRQ and WRQ Packet types
@@ -36,10 +43,9 @@ type ReqPacket struct {
 	TypeCode uint16
 	Filename string
 	Mode     string
-	Length   int
 }
 
-func (p *ReqPacket) ToBytes() []byte {
+func (p *ReqPacket) Serialize() []byte {
 	var b []byte
 
 	//opcode is Type code in big endian
@@ -67,7 +73,7 @@ type DataPacket struct {
 	BlockNumber uint16
 }
 
-func (p *DataPacket) ToBytes() []byte {
+func (p *DataPacket) Serialize() []byte {
 	var b []byte
 
 	//opcode and bnum are Type code and BlockNumber in big endian
@@ -94,7 +100,7 @@ type AckPacket struct {
 	BlockNumber uint16
 }
 
-func (p *AckPacket) ToBytes() []byte {
+func (p *AckPacket) Serialize() []byte {
 	var b []byte
 
 	//opcode and BNum are Type code and BlockNumber in big endian
@@ -121,7 +127,7 @@ type ErrPacket struct {
 	ErrMsg   string
 }
 
-func (p *ErrPacket) ToBytes() []byte {
+func (p *ErrPacket) Serialize() []byte {
 	var b []byte
 
 	//opcode and errorcode are Type code and ErrCode in big endian
@@ -144,26 +150,50 @@ func (p *ErrPacket) ToBytes() []byte {
 	return b
 }
 
-//TODO
+func PacketDeserialize(b []byte) (Packet, error) {
+	var ErrPacketStructure = errors.New("packet structure is invalid")
+	var ErrPacketType = errors.New("packet has invalid type code")
 
-// func PacketDeserialize(b []byte) (Packet, error) {
-// 	var ErrPacketInvalid = errors.New("packet structure is invalid")
+	if len(b) < 4 {
+		return nil, ErrPacketStructure
+	}
+	opcode := binary.BigEndian.Uint16(b[0:2])
 
-// 	if len(b) < 2 {
-// 		return nil, ErrPacketInvalid
-// 	}
-
-// 	opcode := binary.BigEndian.Uint16(b[0:2])
-// 	switch opcode {
-// 	case RRQ, WRQ:
-// 		vals := bytes.Split(b[2:], []byte{0})
-// 		if len(vals) < 2 {
-// 			return nil, ErrPacketInvalid
-// 		}
-// 		return &ReqPacket{
-// 			TypeCode: opcode,
-// 			Filename: string(vals[0]),
-// 			Mode:     string(vals[1]),
-// 		}, nil
-// 	}
-// }
+	switch opcode {
+	case RRQ, WRQ:
+		vals := bytes.Split(b[2:], []byte{0})
+		if len(vals) < 2 {
+			return nil, ErrPacketStructure
+		}
+		return &ReqPacket{
+			TypeCode: opcode,
+			Filename: string(vals[0]),
+			Mode:     string(vals[1]),
+		}, nil
+	case ACK:
+		blocknum := binary.BigEndian.Uint16(b[2:4])
+		return &AckPacket{
+			TypeCode:    opcode,
+			BlockNumber: blocknum,
+		}, nil
+	case DATA:
+		blocknum := binary.BigEndian.Uint16(b[2:4])
+		return &DataPacket{
+			TypeCode:    opcode,
+			BlockNumber: blocknum,
+			Data:        b[4:],
+		}, nil
+	case ERROR:
+		if len(b) < 5 {
+			return nil, ErrPacketStructure
+		}
+		errcode := binary.BigEndian.Uint16(b[2:4])
+		return &ErrPacket{
+			TypeCode: opcode,
+			ErrCode:  errcode,
+			ErrMsg:   string(b[4 : len(b)-1]),
+		}, nil
+	default:
+		return nil, ErrPacketType
+	}
+}
