@@ -69,8 +69,8 @@ func (p *ReqPacket) Serialize() []byte {
 
 type DataPacket struct {
 	TypeCode    uint16
-	Data        []byte
 	BlockNumber uint16
+	Data        []byte
 }
 
 func (p *DataPacket) Serialize() []byte {
@@ -89,7 +89,7 @@ func (p *DataPacket) Serialize() []byte {
 	// | Opcode |   Block #  |   Data     |
 	//  ----------------------------------
 	b = append(b, opcode...)
-	b = append(b, byte(p.BlockNumber))
+	b = append(b, bnum...)
 	b = append(b, p.Data...)
 
 	return b
@@ -116,7 +116,7 @@ func (p *AckPacket) Serialize() []byte {
 	// | Opcode |   Block #  |
 	//  ---------------------
 	b = append(b, opcode...)
-	b = append(b, byte(p.BlockNumber))
+	b = append(b, bnum...)
 
 	return b
 }
