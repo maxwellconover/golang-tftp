@@ -5,7 +5,11 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
+	"fmt"
 )
+
+var ErrPacketType = errors.New("packet has invalid type code")
+var ErrPacketStructure = errors.New("packet structure is invalid")
 
 // Type codes
 const (
@@ -33,8 +37,12 @@ const (
 	datagramLength = 516
 )
 
+func PrintBlocklen() {
+	fmt.Println(blockLength)
+}
+
 type Packet interface {
-	// Serialize packet
+	TypeCode() uint16
 	Serialize() []byte
 }
 
@@ -45,6 +53,10 @@ type ReqPacket struct {
 	Mode     string
 }
 
+func (p *ReqPacket) TypeCode() uint16 {
+	return p.TypeCode
+}
+
 func (p *ReqPacket) Serialize() []byte {
 	var b []byte
 
@@ -52,7 +64,7 @@ func (p *ReqPacket) Serialize() []byte {
 	opcode := make([]byte, 2)
 	binary.BigEndian.PutUint16(opcode, p.TypeCode)
 
-	// *-------------RRQ/WRQ Header Format-------------*
+	// *-------------RRQ/WRQ Packet Format-------------*
 	//
 	//  2 bytes     string    1 byte     string   1 byte
 	//  ------------------------------------------------
@@ -73,6 +85,10 @@ type DataPacket struct {
 	Data        []byte
 }
 
+func (p *DataPacket) TypeCode() uint16 {
+	return p.TypeCode
+}
+
 func (p *DataPacket) Serialize() []byte {
 	var b []byte
 
@@ -82,7 +98,7 @@ func (p *DataPacket) Serialize() []byte {
 	binary.BigEndian.PutUint16(opcode, p.TypeCode)
 	binary.BigEndian.PutUint16(bnum, p.BlockNumber)
 
-	// *--------DATA Header Format--------*
+	// *--------DATA Packet Format--------*
 	//
 	//  2 bytes     2 bytes      n bytes
 	//  ----------------------------------
@@ -100,6 +116,10 @@ type AckPacket struct {
 	BlockNumber uint16
 }
 
+func (p *AckPacket) TypeCode() uint16 {
+	return p.TypeCode
+}
+
 func (p *AckPacket) Serialize() []byte {
 	var b []byte
 
@@ -109,7 +129,7 @@ func (p *AckPacket) Serialize() []byte {
 	binary.BigEndian.PutUint16(opcode, p.TypeCode)
 	binary.BigEndian.PutUint16(bnum, p.BlockNumber)
 
-	// *--ACK Header Format--*
+	// *--ACK Packet Format--*
 	//
 	//  2 bytes     2 bytes
 	//  ---------------------
@@ -127,6 +147,10 @@ type ErrPacket struct {
 	ErrMsg   string
 }
 
+func (p *ErrorPacket) TypeCode() uint16 {
+	return p.TypeCode
+}
+
 func (p *ErrPacket) Serialize() []byte {
 	var b []byte
 
@@ -136,7 +160,7 @@ func (p *ErrPacket) Serialize() []byte {
 	binary.BigEndian.PutUint16(opcode, p.TypeCode)
 	binary.BigEndian.PutUint16(errorcode, p.ErrCode)
 
-	// *-----------ERROR Header Format-----------*
+	// *-----------ERROR Packet Format-----------*
 	//
 	//  2 bytes     2 bytes      string    1 byte
 	//  -----------------------------------------
@@ -151,9 +175,6 @@ func (p *ErrPacket) Serialize() []byte {
 }
 
 func PacketDeserialize(b []byte) (Packet, error) {
-	var ErrPacketStructure = errors.New("packet structure is invalid")
-	var ErrPacketType = errors.New("packet has invalid type code")
-
 	if len(b) < 4 {
 		return nil, ErrPacketStructure
 	}
