@@ -223,8 +223,8 @@ func (s *Server) HandleRead(rrq *pkt.ReqPacket, conn *net.UDPConn) error {
 
 }
 
-func (s *Server) ServeRequests(addr string) error {
-	udpaddr, err := net.ResolveUDPAddr("udp", addr)
+func (s *Server) ServeRequests() error {
+	udpaddr, err := net.ResolveUDPAddr("udp", ":69")
 	if err != nil {
 		return err
 	}
