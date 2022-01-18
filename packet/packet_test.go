@@ -16,7 +16,7 @@ func TestRrqSerializeDeserialize(t *testing.T) {
 	testfname := "testfile.txt"
 	testmode := "octet"
 	rrq := ReqPacket{
-		TypeCode: uint16(1),
+		Type:     uint16(1),
 		Filename: testfname,
 		Mode:     testmode,
 	}
@@ -27,7 +27,7 @@ func TestRrqSerializeDeserialize(t *testing.T) {
 	}
 	rrqpkt := rrqi.(*ReqPacket) //Retrieve RRQ type from Packet interface
 	if rrqpkt.TypeCode() != RRQ {
-		t.Fatalf("incorrect type - RRQ packet code should be %v not %v", RRQ, rrqpkt.TypeCode)
+		t.Fatalf("incorrect type - RRQ packet code should be %v not %v", RRQ, rrqpkt.TypeCode())
 	}
 	if rrqpkt.Filename != testfname {
 		t.Fatalf("incorrect filename - Filename should be %v not %v", testfname, rrqpkt.Filename)
@@ -47,7 +47,7 @@ func TestWrqSerializeDeserialize(t *testing.T) {
 	testfname := "testfile.txt"
 	testmode := "octet"
 	wrq := ReqPacket{
-		TypeCode: uint16(2),
+		Type:     uint16(2),
 		Filename: testfname,
 		Mode:     testmode,
 	}
@@ -58,7 +58,7 @@ func TestWrqSerializeDeserialize(t *testing.T) {
 	}
 	wrqpkt := wrqi.(*ReqPacket)
 	if wrqpkt.TypeCode() != WRQ {
-		t.Fatalf("incorrect type - WRQ packet code should be %v not %v", WRQ, wrqpkt.TypeCode)
+		t.Fatalf("incorrect type - WRQ packet code should be %v not %v", WRQ, wrqpkt.TypeCode())
 	}
 	if wrqpkt.Filename != testfname {
 		t.Fatalf("incorrect filename - Filename should be %v not %v", testfname, wrqpkt.Filename)
@@ -78,7 +78,7 @@ func TestDataSerializeDeserialize(t *testing.T) {
 	testbnum := uint16(48)
 	testdata := []byte("Testing a Data packet")
 	data := DataPacket{
-		TypeCode:    uint16(3),
+		Type:        uint16(3),
 		Data:        testdata,
 		BlockNumber: testbnum,
 	}
@@ -89,7 +89,7 @@ func TestDataSerializeDeserialize(t *testing.T) {
 	}
 	datapkt := datai.(*DataPacket)
 	if datapkt.TypeCode() != DATA {
-		t.Fatalf("incorrect type - DATA packet code should be %v not %v", DATA, datapkt.TypeCode)
+		t.Fatalf("incorrect type - DATA packet code should be %v not %v", DATA, datapkt.TypeCode())
 	}
 	if !bytes.Equal(datapkt.Data, testdata) {
 		t.Fatalf("incorrect data - Data value should be %v not %v", testdata, datapkt.Data)
@@ -108,7 +108,7 @@ func TestDataSerializeDeserialize(t *testing.T) {
 func TestAckSerializeDeserialize(t *testing.T) {
 	testbnum := uint16(14)
 	ack := AckPacket{
-		TypeCode:    uint16(4),
+		Type:        uint16(4),
 		BlockNumber: testbnum,
 	}
 	ackbytes := ack.Serialize()
@@ -118,7 +118,7 @@ func TestAckSerializeDeserialize(t *testing.T) {
 	}
 	ackpkt := acki.(*AckPacket)
 	if ackpkt.TypeCode() != ACK {
-		t.Fatalf("incorrect type - ACK packet code should be %v not %v", ACK, ackpkt.TypeCode)
+		t.Fatalf("incorrect type - ACK packet code should be %v not %v", ACK, ackpkt.TypeCode())
 	}
 	if ackpkt.BlockNumber != testbnum {
 		t.Fatalf("incorrect blocknumber - Block Number should be %v not %v", testbnum, ackpkt.BlockNumber)
@@ -135,9 +135,9 @@ func TestErrorSerializeDeserialize(t *testing.T) {
 	testerrcode := ErrIllegalOperationTFTP
 	testerrmsg := "illegal tftp operation"
 	errorvals := ErrPacket{
-		TypeCode: uint16(5),
-		ErrCode:  testerrcode,
-		ErrMsg:   testerrmsg,
+		Type:    uint16(5),
+		ErrCode: testerrcode,
+		ErrMsg:  testerrmsg,
 	}
 	errorbytes := errorvals.Serialize()
 	errori, err := PacketDeserialize(errorbytes)
@@ -146,7 +146,7 @@ func TestErrorSerializeDeserialize(t *testing.T) {
 	}
 	errorpkt := errori.(*ErrPacket)
 	if errorpkt.TypeCode() != ERROR {
-		t.Fatalf("incorrect type - ERROR packet code should be %v not %v", ERROR, errorpkt.TypeCode)
+		t.Fatalf("incorrect type - ERROR packet code should be %v not %v", ERROR, errorpkt.TypeCode())
 	}
 	if errorpkt.ErrCode != testerrcode {
 		t.Fatalf("incorrect error code - Error code should be %v not %v", testerrcode, errorpkt.ErrCode)

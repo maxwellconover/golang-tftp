@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
-	"fmt"
 )
 
 var ErrPacketType = errors.New("packet has invalid type code")
@@ -33,13 +32,9 @@ const (
 )
 
 const (
-	blockLength    = 512
-	datagramLength = 516
+	BlockLength    = 512
+	DatagramLength = 516
 )
-
-func PrintBlocklen() {
-	fmt.Println(blockLength)
-}
 
 type Packet interface {
 	TypeCode() uint16
@@ -48,13 +43,13 @@ type Packet interface {
 
 // RRQ and WRQ Packet types
 type ReqPacket struct {
-	TypeCode uint16
+	Type     uint16
 	Filename string
 	Mode     string
 }
 
 func (p *ReqPacket) TypeCode() uint16 {
-	return p.TypeCode
+	return p.Type
 }
 
 func (p *ReqPacket) Serialize() []byte {
@@ -62,7 +57,7 @@ func (p *ReqPacket) Serialize() []byte {
 
 	//opcode is Type code in big endian
 	opcode := make([]byte, 2)
-	binary.BigEndian.PutUint16(opcode, p.TypeCode)
+	binary.BigEndian.PutUint16(opcode, p.TypeCode())
 
 	// *-------------RRQ/WRQ Packet Format-------------*
 	//
@@ -80,13 +75,13 @@ func (p *ReqPacket) Serialize() []byte {
 }
 
 type DataPacket struct {
-	TypeCode    uint16
+	Type        uint16
 	BlockNumber uint16
 	Data        []byte
 }
 
 func (p *DataPacket) TypeCode() uint16 {
-	return p.TypeCode
+	return p.Type
 }
 
 func (p *DataPacket) Serialize() []byte {
@@ -95,7 +90,7 @@ func (p *DataPacket) Serialize() []byte {
 	//opcode and bnum are Type code and BlockNumber in big endian
 	opcode := make([]byte, 2)
 	bnum := make([]byte, 2)
-	binary.BigEndian.PutUint16(opcode, p.TypeCode)
+	binary.BigEndian.PutUint16(opcode, p.TypeCode())
 	binary.BigEndian.PutUint16(bnum, p.BlockNumber)
 
 	// *--------DATA Packet Format--------*
@@ -112,12 +107,12 @@ func (p *DataPacket) Serialize() []byte {
 }
 
 type AckPacket struct {
-	TypeCode    uint16
+	Type        uint16
 	BlockNumber uint16
 }
 
 func (p *AckPacket) TypeCode() uint16 {
-	return p.TypeCode
+	return p.Type
 }
 
 func (p *AckPacket) Serialize() []byte {
@@ -126,7 +121,7 @@ func (p *AckPacket) Serialize() []byte {
 	//opcode and BNum are Type code and BlockNumber in big endian
 	opcode := make([]byte, 2)
 	bnum := make([]byte, 2)
-	binary.BigEndian.PutUint16(opcode, p.TypeCode)
+	binary.BigEndian.PutUint16(opcode, p.TypeCode())
 	binary.BigEndian.PutUint16(bnum, p.BlockNumber)
 
 	// *--ACK Packet Format--*
@@ -142,13 +137,13 @@ func (p *AckPacket) Serialize() []byte {
 }
 
 type ErrPacket struct {
-	TypeCode uint16
-	ErrCode  uint16
-	ErrMsg   string
+	Type    uint16
+	ErrCode uint16
+	ErrMsg  string
 }
 
-func (p *ErrorPacket) TypeCode() uint16 {
-	return p.TypeCode
+func (p *ErrPacket) TypeCode() uint16 {
+	return p.Type
 }
 
 func (p *ErrPacket) Serialize() []byte {
@@ -157,7 +152,7 @@ func (p *ErrPacket) Serialize() []byte {
 	//opcode and errorcode are Type code and ErrCode in big endian
 	opcode := make([]byte, 2)
 	errorcode := make([]byte, 2)
-	binary.BigEndian.PutUint16(opcode, p.TypeCode)
+	binary.BigEndian.PutUint16(opcode, p.TypeCode())
 	binary.BigEndian.PutUint16(errorcode, p.ErrCode)
 
 	// *-----------ERROR Packet Format-----------*
@@ -187,20 +182,20 @@ func PacketDeserialize(b []byte) (Packet, error) {
 			return nil, ErrPacketStructure
 		}
 		return &ReqPacket{
-			TypeCode: opcode,
+			Type:     opcode,
 			Filename: string(vals[0]),
 			Mode:     string(vals[1]),
 		}, nil
 	case ACK:
 		blocknum := binary.BigEndian.Uint16(b[2:4])
 		return &AckPacket{
-			TypeCode:    opcode,
+			Type:        opcode,
 			BlockNumber: blocknum,
 		}, nil
 	case DATA:
 		blocknum := binary.BigEndian.Uint16(b[2:4])
 		return &DataPacket{
-			TypeCode:    opcode,
+			Type:        opcode,
 			BlockNumber: blocknum,
 			Data:        b[4:],
 		}, nil
@@ -210,9 +205,9 @@ func PacketDeserialize(b []byte) (Packet, error) {
 		}
 		errcode := binary.BigEndian.Uint16(b[2:4])
 		return &ErrPacket{
-			TypeCode: opcode,
-			ErrCode:  errcode,
-			ErrMsg:   string(b[4 : len(b)-1]),
+			Type:    opcode,
+			ErrCode: errcode,
+			ErrMsg:  string(b[4 : len(b)-1]),
 		}, nil
 	default:
 		return nil, ErrPacketType
